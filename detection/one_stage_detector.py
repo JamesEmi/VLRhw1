@@ -434,13 +434,15 @@ class FCOS(nn.Module):
         gt_classes = matched_gt_boxes[:, :, 4].long()  # Extracting class labels from matched_gt_boxes
         # Mask to avoid converting -1 labels into one-hot vectors
         valid_labels_mask = gt_classes >= 0
-        # gt_classes_one_hot = F.one_hot(gt_classes, num_classes=20).float()
-        # gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device).scatter_(2, gt_classes.unsqueeze(2).long(), 1.0)
         # Initialize the tensor for one-hot encoded classes
         gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device)
-        # Apply the mask to avoid using -1 as an index
-        gt_classes_one_hot = gt_classes_one_hot.scatter_(2, gt_classes.unsqueeze(2).long(), valid_labels_mask.unsqueeze(2).float())
+        
+        # Ensure that we don't try to scatter_ using -1 as an index
+        # Replace -1 with 0 in gt_classes, they will be masked out by valid_labels_mask anyway
+        gt_classes_safe = torch.where(valid_labels_mask, gt_classes, torch.zeros_like(gt_classes))
         # gt_classes_one_hot = gt_classes_one_hot[:, :, 1:] #added by SM, can remove
+        # Apply the mask to avoid using -1 as an index
+        gt_classes_one_hot = gt_classes_one_hot.scatter_(2, gt_classes_safe.unsqueeze(2).long(), valid_labels_mask.unsqueeze(2).float())
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes_one_hot)
         
         # Box Regression Loss

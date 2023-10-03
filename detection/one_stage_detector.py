@@ -433,7 +433,11 @@ class FCOS(nn.Module):
 
         gt_classes = matched_gt_boxes[:, :, 4].long()  # Extracting class labels from matched_gt_boxes
         # gt_classes_one_hot = F.one_hot(gt_classes, num_classes=20).float()
-        gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device).scatter_(2, gt_classes.unsqueeze(2).long(), 1.0)
+        # gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device).scatter_(2, gt_classes.unsqueeze(2).long(), 1.0)
+        # Initialize the tensor for one-hot encoded classes
+        gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device)
+        # Apply the mask to avoid using -1 as an index
+        gt_classes_one_hot = gt_classes_one_hot.scatter_(2, gt_classes.unsqueeze(2).long(), valid_labels_mask.unsqueeze(2).float())
         # gt_classes_one_hot = gt_classes_one_hot[:, :, 1:] #added by SM, can remove
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes_one_hot)
         

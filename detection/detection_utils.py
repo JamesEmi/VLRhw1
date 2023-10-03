@@ -139,12 +139,22 @@ def fcos_get_deltas_from_locations(
     ##########################################################################
     # Set this to Tensor of shape (N, 4) giving deltas (left, top, right, bottom)
     # from the locations to GT box edges, normalized by FPN stride.
-    deltas = None
-    pass
+    
+    # Extract x, y coordinates from locations and x1, y1, x2, y2 from gt_boxes
+    x, y = locations.split(1, dim=-1)
+    x1, y1, x2, y2 = gt_boxes.split(1, dim=-1)[:4]
+    
+    l, t, r, b = x - x1, y-y1, x2-x, y2-y
+    
+    # Create a mask for background boxes
+    bg_mask = (x1 == -1) & (y1 == -1) & (x2 == -1) & (y2 == -1)
+    
+    deltas = torch.cat([l, t, r, b], dim=1) / stride
+    # Apply the mask to set deltas to [-1, -1, -1, -1] for background boxes
+    deltas[bg_mask.squeeze()] = -1
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
-
     return deltas
 
 
@@ -181,7 +191,11 @@ def fcos_apply_deltas_to_locations(
     # for our use-case because the feature center must lie INSIDE the final  #
     # box. Make sure to clip them to zero.                                   #
     ##########################################################################
-    output_boxes = None
+    
+    # Ensure deltas are non-negative, un-normalize them, and apply to locations
+    l, t, r, b = (deltas * stride).clamp(min=0).unbind(dim=-1)
+    x, y = locations.unbind(dim=-1)
+    output_boxes = torch.stack([x - l, y - t, x + r, y + b], dim=-1)
 
     ##########################################################################
     #                             END OF YOUR CODE                           #
@@ -215,7 +229,21 @@ def fcos_make_centerness_targets(deltas: torch.Tensor):
     #   (max(left, right) * max(top, bottom))
     # )
     ##########################################################################
-    centerness = None
+    
+    # Get LTRB deltas
+    left_deltas, top_deltas, right_deltas, bottom_deltas = deltas.split(1, dim=1)
+    # Identify invalid boxes (background)
+    invalid_mask = torch.all(deltas == -1, dim=1)
+    # Calculate centerness
+    numerator = torch.sqrt(torch.min(left_deltas, right_deltas) * torch.min(top_deltas, bottom_deltas))
+    denominator = torch.sqrt(torch.max(left_deltas, right_deltas) * torch.max(top_deltas, bottom_deltas))
+    
+    centerness = numerator / denominator
+    # Set centerness to -1 for invalid boxes
+    centerness[invalid_mask] = -1
+    
+    # Ensure centerness has shape (N, )
+    centerness = centerness.squeeze()    
     ##########################################################################
     #                             END OF YOUR CODE                           #
     ##########################################################################
@@ -258,7 +286,17 @@ def get_fpn_location_coords(
         ##################################################################–####
         # TODO: Implement logic to get location co-ordinates below.          #
         ######################################################################
-        pass
+        
+        # Extracting the height and width of the feature map at the current level
+        _, _, H, W = feat_shape
+        y, x = torch.meshgrid(torch.arange(0, H, dtype=dtype, device=device), torch.arange(0, W, dtype=dtype, device=device))
+        
+        # Scaling the grid of coordinates by the stride to map back into the input space
+        locations = torch.stack(((y+0.5) * level_stride, (x+0.5) * level_stride), dim=-1)
+        
+        # Reshaping the coordinates to be (H*W, 2)
+        location_coords[level_name] = locations.view(-1, 2)
+        
         ######################################################################
         #                             END OF YOUR CODE                       #
         ######################################################################

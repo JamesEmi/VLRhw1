@@ -384,21 +384,37 @@ class FCOS(nn.Module):
         matched_gt_deltas = []
         # Replace "pass" statement with your code
         
-        for gt_box_per_image in gt_boxes:
-            matched_boxes = fcos_match_locations_to_gt(locations_per_fpn_level, strides_per_fpn_level, gt_box_per_image) #code for that is defined in detection_utils.py
-            matched_gt_boxes.append(matched_boxes)
-            
-            matched_deltas = {}
-            for level_name, matched_level_boxes in matched_boxes.items():
-                matched_level_locations = locations_per_fpn_level[level_name].to(device=images.device)
-                matched_level_boxes = matched_level_boxes.to(device=images.device)
-                
-                # Get the stride for the current FPN level
-                stride = strides_per_fpn_level[level_name]
-                
-                matched_deltas[level_name] = fcos_get_deltas_from_locations(matched_level_locations, matched_level_boxes, stride)
-            matched_gt_deltas.append(matched_deltas)
-                
+        positive_location_mask = matched_gt_boxes[:, :, 4] != -1
+        positive_location_count = positive_location_mask.sum()
+        average_positive_location = positive_location_count.item() / images.size(0)
+        self._normalizer = self._normalizer * 0.9 + average_positive_location * 0.1
+
+        # Extracting and processing class labels
+        raw_gt_classes = matched_gt_boxes[:, :, 4].long()
+        processed_gt_classes = F.one_hot(raw_gt_classes + 1, num_classes=self.num_classes + 1)[:, :, 1:]
+
+        # Computation of Classification Loss
+        classification_loss = sigmoid_focal_loss(pred_cls_logits, processed_gt_classes.float())
+
+        # Box Regression Loss computation
+        masked_gt_deltas = torch.where(matched_gt_deltas < 0, torch.zeros_like(matched_gt_deltas), matched_gt_deltas)
+        box_regression_loss = 0.25 * F.l1_loss(pred_boxreg_deltas, masked_gt_deltas, reduction="none")
+
+        # Centerness Loss computation
+        reshaped_gt_deltas = matched_gt_deltas.view(-1, 4)
+        reshaped_ctr_logits = pred_ctr_logits.view(-1)
+        computed_gt_centerness = torch.zeros_like(reshaped_ctr_logits)
+
+        for idx in range(gt_boxes.size(0)):
+          computed_gt_centerness[idx * reshaped_gt_deltas.size(1):(idx + 1) * reshaped_gt_deltas.size(1)] = \
+          fcos_make_centerness_targets(reshaped_gt_deltas[idx * reshaped_gt_deltas.size(1):(idx + 1) * reshaped_gt_deltas.size(1)])
+
+        centerness_loss = F.binary_cross_entropy_with_logits(reshaped_ctr_logits, computed_gt_centerness, reduction="none")
+
+
+
+
+
         ######################################################################
         #                           END OF YOUR CODE                         #
         ######################################################################
@@ -430,39 +446,35 @@ class FCOS(nn.Module):
         # Feel free to delete this line: (but keep variable names same)
         # loss_cls, loss_box, loss_ctr = None, None, None
         
+        positive_location_mask = matched_gt_boxes[:, :, 4] != -1
+        positive_location_count = positive_location_mask.sum()
+        average_positive_location = positive_location_count.item() / images.size(0)
+        self._normalizer = self._normalizer * 0.9 + average_positive_location * 0.1
 
-        gt_classes = matched_gt_boxes[:, :, 4].long()  # Extracting class labels from matched_gt_boxes
-        # Mask to avoid converting -1 labels into one-hot vectors
-        valid_labels_mask = gt_classes >= 0
-        # Initialize the tensor for one-hot encoded classes
-        gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device)
-        
-        # Ensure that we don't try to scatter_ using -1 as an index
-        # Replace -1 with 0 in gt_classes, they will be masked out by valid_labels_mask anyway
-        gt_classes_safe = torch.where(valid_labels_mask, gt_classes, torch.zeros_like(gt_classes))
-        # gt_classes_one_hot = gt_classes_one_hot[:, :, 1:] #added by SM, can remove
-        # Apply the mask to avoid using -1 as an index
-        gt_classes_one_hot = gt_classes_one_hot.scatter_(2, gt_classes_safe.unsqueeze(2).long(), valid_labels_mask.unsqueeze(2).float())
-        loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_classes_one_hot)
-        
-        # Box Regression Loss
-        num_pos_anchors = (gt_classes != -1).sum()  # Assuming -1 indicates background/no-object
-        pos_inds = (gt_classes != -1)
-        if num_pos_anchors > 0:
-            boxreg_flatten = pred_boxreg_deltas.permute(0, 2, 1)
-            boxreg_targets_flatten = matched_gt_deltas
-            loss_box = F.smooth_l1_loss(boxreg_flatten, boxreg_targets_flatten, reduction="none").sum(dim=-1)
-            loss_box = (loss_box * pos_inds.float()).sum() / num_pos_anchors
-        else:
-            loss_box = pred_boxreg_deltas.sum() * 0
-            
-        # Centerness Loss
-        if num_pos_anchors > 0:
-            ctr_targets = fcos_make_centerness_targets(matched_gt_deltas)
-            loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.squeeze(dim=-1), ctr_targets, reduction="none")
-            loss_ctr = (loss_ctr * pos_inds.float()).sum() / num_pos_anchors
-        else:
-            loss_ctr = pred_ctr_logits.sum() * 0
+        # Extracting and processing class labels
+        raw_gt_classes = matched_gt_boxes[:, :, 4].long()
+        processed_gt_classes = F.one_hot(raw_gt_classes + 1, num_classes=self.num_classes + 1)[:, :, 1:]
+
+        # Computation of Classification Loss
+        loss_cls = sigmoid_focal_loss(pred_cls_logits, processed_gt_classes.float())
+
+        # Box Regression Loss computation
+        masked_gt_deltas = torch.where(matched_gt_deltas < 0, torch.zeros_like(matched_gt_deltas), matched_gt_deltas)
+        loss_box = 0.25 * F.l1_loss(pred_boxreg_deltas, masked_gt_deltas, reduction="none")
+
+        # Centerness Loss computation
+        reshaped_gt_deltas = matched_gt_deltas.view(-1, 4)
+        reshaped_ctr_logits = pred_ctr_logits.view(-1)
+        computed_gt_centerness = torch.zeros_like(reshaped_ctr_logits)
+
+        for idx in range(gt_boxes.size(0)):
+          computed_gt_centerness[idx * reshaped_gt_deltas.size(1):(idx + 1) * reshaped_gt_deltas.size(1)] = \
+          fcos_make_centerness_targets(reshaped_gt_deltas[idx * reshaped_gt_deltas.size(1):(idx + 1) * reshaped_gt_deltas.size(1)])
+
+        loss_ctr = F.binary_cross_entropy_with_logits(reshaped_ctr_logits, computed_gt_centerness, reduction="none")
+        loss_ctr[computed_gt_centerness < 0] = 0
+
+
             
         ######################################################################
         #                            END OF YOUR CODE                        #

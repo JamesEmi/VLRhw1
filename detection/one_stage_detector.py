@@ -430,13 +430,9 @@ class FCOS(nn.Module):
         # Feel free to delete this line: (but keep variable names same)
         # loss_cls, loss_box, loss_ctr = None, None, None
         
-        positive_location_mask = matched_gt_boxes[:, :, 4] != -1
-        positive_location_count = positive_location_mask.sum()
-        average_positive_location = positive_location_count.item() / images.size(0)
-        self._normalizer = self._normalizer * 0.9 + average_positive_location * 0.1
 
         # Extracting and processing class labels
-        raw_gt_classes = matched_gt_boxes[:, :, 4].long()
+        raw_gt_classes = matched_gt_boxes[:, :, 1].long() #see if 4 is correct or 1.
         processed_gt_classes = F.one_hot(raw_gt_classes + 1, num_classes=self.num_classes + 1)[:, :, 1:]
 
         # Computation of Classification Loss

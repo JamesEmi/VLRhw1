@@ -432,6 +432,8 @@ class FCOS(nn.Module):
         
 
         gt_classes = matched_gt_boxes[:, :, 4].long()  # Extracting class labels from matched_gt_boxes
+        # Mask to avoid converting -1 labels into one-hot vectors
+        valid_labels_mask = gt_classes >= 0
         # gt_classes_one_hot = F.one_hot(gt_classes, num_classes=20).float()
         # gt_classes_one_hot = torch.zeros(gt_classes.size(0), gt_classes.size(1), 20, device=gt_classes.device).scatter_(2, gt_classes.unsqueeze(2).long(), 1.0)
         # Initialize the tensor for one-hot encoded classes

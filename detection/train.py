@@ -189,7 +189,7 @@ def main(args):
             device=DEVICE,
             dtype=torch.float32,
         )
-    else:
+
         print("Running inference and computing mAP...")
         assert os.path.exists("mAP")
         # Modify this depending on where you save your weights.

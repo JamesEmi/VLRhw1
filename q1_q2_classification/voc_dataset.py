@@ -107,7 +107,7 @@ class VOCDataset(Dataset):
 
         return label_list
 
-    def get_random_augmentations(self):
+    def get_random_augmentations(self, use_augmentations = True):
         ######################################################################
         # TODO: Return a list of random data augmentation transforms here
         # NOTE: make sure to not augment during test and replace random crops
@@ -120,7 +120,7 @@ class VOCDataset(Dataset):
         # in line 46 in simple_cnn.py
         ######################################################################
 		
-        if self.train:
+        if use_augmentations and self.train:
             transforms_list = [
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),

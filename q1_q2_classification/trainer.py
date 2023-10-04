@@ -24,7 +24,7 @@ def save_model(epoch, model_name, model):
 
 
 def train(args, model, optimizer, scheduler=None, model_name='model'):
-    writer = SummaryWriter()
+    writer = SummaryWriter(log_dir=f"runs/aug_1") #Remember to change the name here for each run (to store aug and not aug runs separately)
     train_loader = utils.get_data_loader(
         'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size, use_augmentations=True) #Or False
     test_loader = utils.get_data_loader(

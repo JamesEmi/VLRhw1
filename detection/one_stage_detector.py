@@ -537,29 +537,40 @@ class FCOS(nn.Module):
             # level_pred_boxes, level_pred_classes, level_pred_scores = (None, None,None)
             # Need tensors of shape: (N, 4) (N, ) (N, )
 
+            level_pred_boxes, level_pred_classes, level_pred_scores = (
+                None,
+                None,
+                None,  # Need tensors of shape: (N, 4) (N, ) (N, )
+            )
+
             # Compute geometric mean of class logits and centerness:
-            level_pred_scores = torch.sqrt(level_cls_logits.sigmoid_() * level_ctr_logits.sigmoid_())
+            level_pred_scores = torch.sqrt(
+                level_cls_logits.sigmoid_() * level_ctr_logits.sigmoid_()
+            )
+            # Step 1:
+            level_pred_scores_vals= torch.max(level_pred_scores, dim=1).values
+            level_pred_classes = torch.argmax(level_pred_scores, dim=1)
+            level_pred_scores = level_pred_scores_vals
             
-            # Step 1: Get the most confidently predicted class and its score for every box
-            level_pred_class_probs, level_pred_classes = level_pred_scores.max(dim=1)
-            
-            # Step 2: Only retain predictions that have a confidence score higher than the threshold
-            above_threshold = level_pred_class_probs > test_score_thresh
-            level_pred_classes = level_pred_classes[above_threshold]
-            level_deltas = level_deltas[above_threshold]
-            level_locations = level_locations[above_threshold]
-            level_pred_class_probs = level_pred_class_probs[above_threshold]
+            # Step 2:
+            idx = level_pred_scores < test_score_thresh
+            level_pred_classes[idx] = -1
 
-            # Step 3: Obtain predicted boxes using predicted deltas and locations
-            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas, level_locations, self.backbone.fpn_strides[level_name])
-            
-            # Step 4: Clip box coordinates that go beyond the height and width of the input image (Use `images` to get (height, width) for clipping).
-            h, w = images.shape[-2:]
-            level_pred_boxes[:, 0] = torch.clamp(level_pred_boxes[:, 0], min=0, max=w)
-            level_pred_boxes[:, 1] = torch.clamp(level_pred_boxes[:, 1], min=0, max=h)
-            level_pred_boxes[:, 2] = torch.clamp(level_pred_boxes[:, 2], min=0, max=w)
-            level_pred_boxes[:, 3] = torch.clamp(level_pred_boxes[:, 3], min=0, max=h)
+            # Step 3:
+            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas, 
+                                                              level_locations, 
+                                                              self.backbone.fpn_strides[level_name])
 
+
+            # Step 4: Use `images` to get (height, width) for clipping.
+            h = images.shape[2]
+            w = images.shape[3]
+        
+            for idx in range(4):
+                if idx % 2 == 0:
+                    level_pred_boxes[:, idx] = torch.clamp(level_pred_boxes[:, idx], min=0, max=w) #0, 2
+                else:
+                    level_pred_boxes[:, idx] = torch.clamp(level_pred_boxes[:, idx], min=0, max=h) #1, 3
             ##################################################################
             #                          END OF YOUR CODE                      #
             ##################################################################

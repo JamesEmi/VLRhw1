@@ -127,7 +127,7 @@ class VOCDataset(Dataset):
             transforms.RandomVerticalFlip(p=0.5),
             transforms.RandomRotation(degrees=15),
             transforms.RandomResizedCrop(size=64),  # Target size 64x64
-            transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1))
+            # transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1))
                     ]
 			
             random_transforms = random.sample(transforms_list, k=random.randint(1, len(transforms_list)))

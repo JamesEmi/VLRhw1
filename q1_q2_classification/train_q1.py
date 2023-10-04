@@ -32,6 +32,17 @@ if __name__ == "__main__":
     #                          END OF YOUR CODE                      #
     ##################################################################
 
+    args = ARGS(
+        epochs = 10,
+        inp_size = 64,
+        use_cuda = True,
+        val_every = 70,
+        lr = 0.00025,         #try annealing too.
+        batch_size = 32,
+        step_size = 10,
+        gamma = 0.1
+    )
+
     print(args)
 
     # initializes the model

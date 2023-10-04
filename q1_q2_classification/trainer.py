@@ -1,4 +1,5 @@
 from __future__ import print_function
+from tqdm import tqdm
 
 import torch
 import numpy as np
@@ -36,7 +37,7 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
     cnt = 0
 
     for epoch in range(args.epochs):
-        for batch_idx, (data, target, wgt) in enumerate(train_loader):
+        for batch_idx, (data, target, wgt) in enumerate(tqdm(train_loader, desc="Epoch {}".format(epoch))):
             data, target, wgt = data.to(args.device), target.to(args.device), wgt.to(args.device)
 
             optimizer.zero_grad()
@@ -53,7 +54,26 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             # Function Outputs:
             #   - `output`: Computed loss, a single floating point number
             ##################################################################
-            loss = 0
+			
+			# using sigmoid activation to get probabilities in range [0,1]
+            probs = 1 / (1+ torch.exp(-output))
+			#why the (-output?)
+			
+			#expression for binary cross entropy loss
+            bce_loss = (-target * torch.log(probs)) - ((1 - target) * torch.log(1-probs))
+			
+			# Taking care of underflows/overflows using torch.clamp for logarithm operations
+            bce_loss = -target * torch.log(torch.clamp(probs, min=1e-7, max=1-1e-7)) \
+                       - (1 - target) * torch.log(torch.clamp(1 - probs, min=1e-7, max=1-1e-7))
+			#The values fed into the logsrithm operator are clamped to be between slightly higher than zero, and slightly less than one, so as to avoid 
+			
+			# Weighted loss
+            weighted_loss = bce_loss * wgt
+			
+			# Average over all instances and classes
+            loss = torch.mean(weighted_loss)
+			
+            # loss = 0
             ##################################################################
             #                          END OF YOUR CODE                      #
             ##################################################################

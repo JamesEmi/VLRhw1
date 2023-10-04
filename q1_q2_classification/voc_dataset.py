@@ -21,7 +21,7 @@ class VOCDataset(Dataset):
     for i in range(len(CLASS_NAMES)):
         INV_CLASS[CLASS_NAMES[i]] = i
 
-    def __init__(self, split, size, train=True, data_dir='data/VOCdevkit/VOC2007/'):
+    def __init__(self, split, size, train=True, use_augmentations=True, data_dir='data/VOCdevkit/VOC2007/'):
         super().__init__()
         self.split = split
         self.data_dir = data_dir
@@ -29,6 +29,7 @@ class VOCDataset(Dataset):
         self.train = train
         self.img_dir = os.path.join(data_dir, 'JPEGImages')
         self.ann_dir = os.path.join(data_dir, 'Annotations')
+        self.use_augmentations = use_augmentations
 
         split_file = os.path.join(data_dir, 'ImageSets/Main', split + '.txt')
         with open(split_file) as fp:

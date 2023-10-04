@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from voc_dataset import VOCDataset
 import random
+from train_q2 import ResNet
 
 # Load the data
 # Assuming VOCDataset is a Dataset class for PASCAL VOC
@@ -22,8 +23,9 @@ if torch.cuda.is_available():
 else:
   device = 'cpu'
 
-model = torch.load('Q2Model_checkpoint.pth', map_location=device)  # Load your model here
-model.load_state_dict(model['model_states'])
+model = ResNet(20)
+saved_model = torch.load('Q2Model_checkpoint.pth', map_location=device)  # Load your model here
+model.load_state_dict(saved_model['model_states'])
 model.eval()
 
 # Here, we'll assume the feature extractor is the model without its final classification layer

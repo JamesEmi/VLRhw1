@@ -536,29 +536,37 @@ class FCOS(nn.Module):
             # Feel free to delete this line: (but keep variable names same)
             # level_pred_boxes, level_pred_classes, level_pred_scores = (None, None,None)
             # Need tensors of shape: (N, 4) (N, ) (N, )
-
+            level_pred_boxes, level_pred_classes, level_pred_scores = (
+                None,
+                None,
+                None,  # Need tensors of shape: (N, 4) (N, ) (N, )
+            )
           
-            # Step 1 & 2: Compute scores and filter predictions below threshold
-            scores = torch.sqrt(level_cls_logits.sigmoid_() * level_ctr_logits.sigmoid_())
-            max_scores, pred_class_labels = scores.max(dim=1)
-            
-            valid = max_scores >= test_score_thresh
-            filtered_locs = level_locations[valid]
-            filtered_deltas = level_deltas[valid]
-            filtered_classes = pred_class_labels[valid]
-            filtered_scores = max_scores[valid]
+            # Compute geometric mean of class logits and centerness:
+            level_pred_scores = torch.sqrt(
+                level_cls_logits.sigmoid_() * level_ctr_logits.sigmoid_()
+            )
+
+            # Step 1:
+            max_scores, level_pred_classes = torch.max(level_pred_scores, dim=1).values, torch.argmax(level_pred_scores, dim=1)
+            level_pred_scores = max_scores
+
+            # Step 2:
+            # level_pred_classes.masked_fill_(max_scores < test_score_thresh, -1)
+            level_pred_classes[max_scores < test_score_thresh] = -1
+
             
             # Step 3: Derive predicted bounding boxes
-            derived_boxes = fcos_apply_deltas_to_locations(filtered_deltas, filtered_locs, self.backbone.fpn_strides[level_name])
+            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas, level_locations, self.backbone.fpn_strides[level_name])
             
             # Step 4: Clip bounding box coordinates using image dimensions
             img_h, img_w = images.shape[2:4]
-            derived_boxes[:, [0, 2]] = torch.clamp(derived_boxes[:, [0, 2]], 0, img_w)
-            derived_boxes[:, [1, 3]] = torch.clamp(derived_boxes[:, [1, 3]], 0, img_h)
+            level_pred_boxes[:, [0, 2]] = torch.clamp(level_pred_boxes[:, [0, 2]], 0, img_w)
+            level_pred_boxes[:, [1, 3]] = torch.clamp(level_pred_boxes[:, [1, 3]], 0, img_h)
             
-            pred_boxes_all_levels.append(derived_boxes)
-            pred_classes_all_levels.append(filtered_classes)
-            pred_scores_all_levels.append(filtered_scores)
+            pred_boxes_all_levels.append(level_pred_boxes)
+            pred_classes_all_levels.append(level_pred_classes)
+            pred_scores_all_levels.append(level_pred_scores)
 
             ##################################################################
             #                          END OF YOUR CODE                      #

@@ -429,33 +429,28 @@ class FCOS(nn.Module):
         ######################################################################
         # Feel free to delete this line: (but keep variable names same)
         # loss_cls, loss_box, loss_ctr = None, None, None
-        
+      
+        # Class vector preparation
+        cls_idx = matched_gt_boxes[:, :, -1].long() + 1
+        one_hot_helper = torch.cat((torch.zeros(1, self.num_classes),
+                                    torch.eye(self.num_classes)), dim=0).to(device=cls_idx.device)
 
-        # Extracting and processing class labels
-        raw_gt_classes = matched_gt_boxes[:, :, 4].long() #see if 4 is correct or 1.
-        processed_gt_classes = F.one_hot(raw_gt_classes + 1, num_classes=self.num_classes + 1)[:, :, 1:]
+        target_cls_vector = one_hot_helper[cls_idx]
 
-        # Computation of Classification Loss
-        loss_cls = sigmoid_focal_loss(pred_cls_logits, processed_gt_classes.float())
+        # Classification loss
+        loss_cls = sigmoid_focal_loss(pred_cls_logits, target_cls_vector)
+                
+        # Bounding box regression loss with mask for invalid deltas
+        loss_box = F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none") * 0.25
+        invalid_mask = matched_gt_deltas < 0
+        loss_box[invalid_mask] = 0.0
+                
+        # Centerness loss with a mask for invalid targets
+        computed_centerness_targets = fcos_make_centerness_targets(matched_gt_deltas.reshape(-1, 4))
+        loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits.flatten(), computed_centerness_targets, reduction="none")
+        invalid_center_mask = computed_centerness_targets < 0
+        loss_ctr[invalid_center_mask] = 0.0
 
-        # Box Regression Loss computation
-        masked_gt_deltas = torch.where(matched_gt_deltas < 0, torch.zeros_like(matched_gt_deltas), matched_gt_deltas)
-        loss_box = 0.25 * F.l1_loss(pred_boxreg_deltas, masked_gt_deltas, reduction="none")
-
-        # Centerness Loss computation
-        reshaped_gt_deltas = matched_gt_deltas.view(-1, 4)
-        reshaped_ctr_logits = pred_ctr_logits.view(-1)
-        computed_gt_centerness = torch.zeros_like(reshaped_ctr_logits)
-
-        for idx in range(gt_boxes.size(0)):
-          computed_gt_centerness[idx * reshaped_gt_deltas.size(1):(idx + 1) * reshaped_gt_deltas.size(1)] = \
-          fcos_make_centerness_targets(reshaped_gt_deltas[idx * reshaped_gt_deltas.size(1):(idx + 1) * reshaped_gt_deltas.size(1)])
-
-        loss_ctr = F.binary_cross_entropy_with_logits(reshaped_ctr_logits, computed_gt_centerness, reduction="none")
-        loss_ctr[computed_gt_centerness < 0] = 0
-
-
-            
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -556,7 +551,7 @@ class FCOS(nn.Module):
             level_pred_class_probs = level_pred_class_probs[above_threshold]
 
             # Step 3: Obtain predicted boxes using predicted deltas and locations
-            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas, level_locations, strides_per_fpn_level[level_name])
+            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas, level_locations, self.backbone.fpn_strides[level_name])
             
             # Step 4: Clip box coordinates that go beyond the height and width of the input image (Use `images` to get (height, width) for clipping).
             h, w = images.shape[-2:]

@@ -26,7 +26,7 @@ def save_model(epoch, model_name, model):
 def train(args, model, optimizer, scheduler=None, model_name='model'):
     writer = SummaryWriter()
     train_loader = utils.get_data_loader(
-        'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size)
+        'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size, use_augmentations=True) #Or False
     test_loader = utils.get_data_loader(
         'voc', train=False, batch_size=args.test_batch_size, split='test', inp_size=args.inp_size)
 

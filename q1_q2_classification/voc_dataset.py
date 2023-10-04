@@ -9,22 +9,24 @@ import torch
 import torch.nn
 from PIL import Image
 import torchvision.transforms as transforms
+import random
 from torch.utils.data import Dataset
 
 
 class VOCDataset(Dataset):
     CLASS_NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
-                   'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
-                   'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+                   'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+	
     INV_CLASS = {}
     for i in range(len(CLASS_NAMES)):
         INV_CLASS[CLASS_NAMES[i]] = i
 
-    def __init__(self, split, size, data_dir='data/VOCdevkit/VOC2007/'):
+    def __init__(self, split, size, train=True, data_dir='data/VOCdevkit/VOC2007/'):
         super().__init__()
         self.split = split
         self.data_dir = data_dir
         self.size = size
+        self.train = train
         self.img_dir = os.path.join(data_dir, 'JPEGImages')
         self.ann_dir = os.path.join(data_dir, 'Annotations')
 
@@ -49,13 +51,17 @@ class VOCDataset(Dataset):
     def preload_anno(self):
         """
         :return: a list of labels. each element is in the form of [class, weight],
-         where both class and weight are a numpy array in shape of [20],
+         where both class and weight are a numpy array in shape of [20].
         """
         label_list = []
+        class_map = {}
+		
+		
         for index in self.index_list:
             fpath = os.path.join(self.ann_dir, index + '.xml')
             tree = ET.parse(fpath)
-            
+			# match the objects from 'tree' to class labels pulled from the Annotations folder. 
+			
             #######################################################################
             # TODO: Insert your code here to preload labels
             # Hint: the folder Annotations contains .xml files with class labels
@@ -64,13 +70,34 @@ class VOCDataset(Dataset):
             # https://docs.python.org/3/library/xml.etree.elementtree.html)
             # Loop through the `tree` to find all objects in the image
             #######################################################################
-
+			
+			##
+			
+			##
+			
             #  The class vector should be a 20-dimensional vector with class[i] = 1 if an object of class i is present in the image and 0 otherwise
             class_vec = torch.zeros(20)
-
-            # The weight vector should be a 20-dimensional vector with weight[i] = 0 iff an object of class i has the `difficult` attribute set to 1 in the XML file and 1 otherwise
+            # The weight vector should be a 20-dimensional vector with weight[i] = 0 if an object of class i has the `difficult` attribute set to 1 in the XML file and 1 otherwise
             # The difficult attribute specifies whether a class is ambiguous and by setting its weight to zero it does not contribute to the loss during training 
             weight_vec = torch.ones(20)
+			
+            for obj in tree.findall('object'):
+                class_name = obj.find('name').text
+                difficult = int(obj.find('difficult').text)
+				#so that weights are not given to the difficult-to-detect objects
+				
+				# Map class name to an index
+                class_index = self.get_class_index(class_name)
+				#clarify this
+				
+				# Setting the relevant element in class_vec to 1. Is already zero for classes not present
+                class_vec[class_index] = 1
+				
+				# Setting the relevant element in class_vec to 0 if 'difficult' is 1
+        #what does difficult mean??
+                if difficult == 1:
+                    weight_vec[class_index] = 0
+				
 
             ######################################################################
             #                            END OF YOUR CODE                        #
@@ -92,7 +119,25 @@ class VOCDataset(Dataset):
         # change and you will have to write the correct value of `flat_dim`
         # in line 46 in simple_cnn.py
         ######################################################################
-        pass
+		
+        if self.train:
+            transforms_list = [
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(degrees=15),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+            transforms.RandomResizedCrop(size=64, scale=(0.08, 1.0), ratio=(0.75, 1.33)),  # Target size 64x64
+            transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1))
+                    ]
+			
+            random_transforms = random.sample(transforms_list, k=random.randint(1, len(transforms_list)))
+            return random_transforms
+			
+        else:
+            return [transforms.Resize(64), transforms.CenterCrop(64)]
+		
+		# pass
+		
         ######################################################################
         #                            END OF YOUR CODE                        #
         ######################################################################
@@ -111,10 +156,10 @@ class VOCDataset(Dataset):
         img = Image.open(fpath)
 
         trans = transforms.Compose([
-            transforms.Resize(self.size),
             *self.get_random_augmentations(),
+            transforms.Resize((self.size, self.size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.457, 0.407], std=[0.5, 0.5, 0.5]),
+            transforms.Normalize(mean=[0.485, 0.457, 0.407], std=[0.5, 0.5, 0.5])
         ])
 
         img = trans(img)

@@ -24,7 +24,7 @@ def save_model(epoch, model_name, model):
 
 
 def train(args, model, optimizer, scheduler=None, model_name='model'):
-    writer = SummaryWriter(log_dir=f"runs/aug_1") #Remember to change the name here for each run (to store aug and not aug runs separately)
+    writer = SummaryWriter(log_dir=f"runs/no_aug_1") #Remember to change the name here for each run (to store aug and not aug runs separately)
     train_loader = utils.get_data_loader(
         'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size, use_augmentations=True) #Or False
     test_loader = utils.get_data_loader(
@@ -88,6 +88,11 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
                 for tag, value in model.named_parameters():
                     if value.grad is not None:
                         writer.add_histogram(tag + "/grad", value.grad.cpu().numpy(), cnt)
+                # Log specific gradients
+                for name, param in model.named_parameters():
+                    if name == "layer1.1.conv1.weight" or name == "layer4.0.bn2.bias":
+                        writer.add_histogram(name + '/grad', param.grad, cnt)
+
 
             optimizer.step()
             

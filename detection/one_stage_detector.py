@@ -555,7 +555,10 @@ class FCOS(nn.Module):
             
             # Step 4: Clip box coordinates that go beyond the height and width of the input image (Use `images` to get (height, width) for clipping).
             h, w = images.shape[-2:]
-            level_pred_boxes = level_pred_boxes.clip(min=0, max=torch.tensor([w, h, w, h], device=level_pred_boxes.device))
+            level_pred_boxes[:, 0] = torch.clamp(level_pred_boxes[:, 0], min=0, max=w)
+            level_pred_boxes[:, 1] = torch.clamp(level_pred_boxes[:, 1], min=0, max=h)
+            level_pred_boxes[:, 2] = torch.clamp(level_pred_boxes[:, 2], min=0, max=w)
+            level_pred_boxes[:, 3] = torch.clamp(level_pred_boxes[:, 3], min=0, max=h)
 
             ##################################################################
             #                          END OF YOUR CODE                      #

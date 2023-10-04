@@ -38,7 +38,8 @@ class SimpleCNN(nn.Module):
         self.pool2 = nn.AvgPool2d(2, 2)
 
         # TODO set the correct dim here
-        self.flat_dim = None
+        self.flat_dim = (inp_size//4) * (inp_size//4) * 64
+		# number of channels from last convolutional later is 64.
 
         # Sequential is another way of chaining the layers.
         self.fc1 = nn.Sequential(*get_fc(self.flat_dim, 128, 'none'))
@@ -49,7 +50,6 @@ class SimpleCNN(nn.Module):
         :param x: input image in shape of (N, C, H, W)
         :return: out: classification logits in shape of (N, Nc)
         """
-
         N = x.size(0)
         x = self.conv1(x)
         x = self.nonlinear(x)

@@ -91,3 +91,8 @@ if __name__ == "__main__":
     # trains model using your training code and reports test mAP
     test_ap, test_map = trainer.train(args, model, optimizer, scheduler)
     print('test map:', test_map)
+
+    torch.save({
+        'model_states':model.state_dict(),
+        'optimizer_states':optimizer.state_dict(),
+        }, 'Q2Model_checkpoint.pth')

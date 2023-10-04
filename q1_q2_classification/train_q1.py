@@ -37,13 +37,15 @@ if __name__ == "__main__":
         inp_size = 64,
         use_cuda = True,
         val_every = 70,
-        lr = 0.00025,         #try annealing too.
+        lr = 0.001,    #param set #1 - bad results?
         batch_size = 32,
         step_size = 10,
-        gamma = 0.1
+        gamma = 0.1,
+        use_augmentations=True
     )
 
     print(args)
+    print(f"Using Data Augmentations: {args.use_augmentations}")
 
     # initializes the model
     model = SimpleCNN(num_classes=len(VOCDataset.CLASS_NAMES), inp_size=64, c_dim=3)

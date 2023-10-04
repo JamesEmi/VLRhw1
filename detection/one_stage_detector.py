@@ -432,7 +432,7 @@ class FCOS(nn.Module):
         
 
         # Extracting and processing class labels
-        raw_gt_classes = matched_gt_boxes[:, :, 1].long() #see if 4 is correct or 1.
+        raw_gt_classes = matched_gt_boxes[:, :, 4].long() #see if 4 is correct or 1.
         processed_gt_classes = F.one_hot(raw_gt_classes + 1, num_classes=self.num_classes + 1)[:, :, 1:]
 
         # Computation of Classification Loss

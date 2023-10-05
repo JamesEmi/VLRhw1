@@ -133,7 +133,7 @@ class VOCDataset(Dataset):
             return transforms_list
 			
         else:
-            return [transforms.Resize(64), transforms.CenterCrop(64)]
+            return [transforms.Resize(self.size), transforms.CenterCrop(self.size)]
 		
 		# pass
 		

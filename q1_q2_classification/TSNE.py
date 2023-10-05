@@ -55,14 +55,15 @@ mean_colors = mean_colors - np.min(mean_colors, axis=0)  # Min-Max Normalization
 mean_colors = mean_colors / np.max(mean_colors, axis=0) 
 
 # Plot
-plt.figure(figsize=(10, 10))
-plt.scatter(features_2d[:, 0], features_2d[:, 1], c=mean_colors, s=10)
-plt.title("t-SNE Visualization of Image Features")
+fig, ax = plt.subplots(figsize=(10, 10))  # Explicitly create a Figure and Axes
+scatter = ax.scatter(features_2d[:, 0], features_2d[:, 1], c=mean_colors, s=10)
+ax.set_title("t-SNE Visualization of Image Features")
 
 # Add a colorbar as legend
 sm = plt.cm.ScalarMappable(cmap=plt.cm.rainbow, norm=plt.Normalize(vmin=0, vmax=len(VOCDataset.CLASS_NAMES)-1))
 # sm.set_array(VOCDataset.CLASS_NAMES)
-cbar = plt.colorbar(sm, ticks=range(len(VOCDataset.CLASS_NAMES)), boundaries=np.arange(len(VOCDataset.CLASS_NAMES)+1)-0.5)
+sm.set_array([])
+cbar = plt.colorbar(sm, ax=ax, boundaries=np.arange(len(VOCDataset.CLASS_NAMES)+1)-0.5)
 cbar.set_ticks(np.arange(len(VOCDataset.CLASS_NAMES)))
 cbar.set_ticklabels(VOCDataset.CLASS_NAMES)
 cbar.set_label('Classes', rotation=270)

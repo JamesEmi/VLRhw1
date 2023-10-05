@@ -57,13 +57,13 @@ if __name__ == "__main__":
     
     args = ARGS(
         epochs=50,
-        inp_size=64,
+        inp_size=224,
         use_cuda=True,
         val_every=70,
-        lr=0.001,
+        lr=0.00015,
         batch_size=32,
-        step_size=10,
-        gamma=0.85
+        step_size=6,
+        gamma=0.1
     )
     
     ##################################################################

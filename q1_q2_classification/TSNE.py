@@ -50,6 +50,10 @@ colors = plt.cm.rainbow(np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
 # Compute the mean color for each sample
 mean_colors = np.dot(labels, colors)
 
+# Normalize to [0, 1]
+mean_colors = mean_colors - np.min(mean_colors, axis=0)  # Min-Max Normalization
+mean_colors = mean_colors / np.max(mean_colors, axis=0) 
+
 # Plot
 plt.figure(figsize=(10, 10))
 plt.scatter(features_2d[:, 0], features_2d[:, 1], c=mean_colors, s=10)

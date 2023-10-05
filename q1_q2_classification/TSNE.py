@@ -60,10 +60,12 @@ plt.scatter(features_2d[:, 0], features_2d[:, 1], c=mean_colors, s=10)
 plt.title("t-SNE Visualization of Image Features")
 
 # Add a colorbar as legend
-sm = plt.cm.ScalarMappable(cmap=plt.cm.rainbow)
-sm.set_array(VOCDataset.CLASS_NAMES)
-plt.colorbar(sm, ticks=range(len(VOCDataset.CLASS_NAMES)), boundaries=np.arange(len(VOCDataset.CLASS_NAMES)+1)-0.5)
-plt.clim(-0.5, len(VOCDataset.CLASS_NAMES)-0.5)
+sm = plt.cm.ScalarMappable(cmap=plt.cm.rainbow, norm=plt.Normalize(vmin=0, vmax=len(VOCDataset.CLASS_NAMES)-1))
+# sm.set_array(VOCDataset.CLASS_NAMES)
+cbar = plt.colorbar(sm, ticks=range(len(VOCDataset.CLASS_NAMES)), boundaries=np.arange(len(VOCDataset.CLASS_NAMES)+1)-0.5)
+cbar.set_ticks(np.arange(len(VOCDataset.CLASS_NAMES)))
+cbar.set_ticklabels(VOCDataset.CLASS_NAMES)
+cbar.set_label('Classes', rotation=270)
 
 # plt.show() 
-plt.savefig('TSNE.png')
+plt.savefig('TSNE2.png')

@@ -1,72 +1,170 @@
-import torch
-import torch.utils.data
-import torchvision.transforms as transforms
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
+from __future__ import print_function
+
+import imageio
 import numpy as np
-from voc_dataset import VOCDataset
+import os
+import xml.etree.ElementTree as ET
+
+import torch
+import torch.nn
+from PIL import Image
+import torchvision.transforms as transforms
 import random
-from train_q2 import ResNet
+from torch.utils.data import Dataset
 
-# Load the data
-# Assuming VOCDataset is a Dataset class for PASCAL VOC
-dataset = VOCDataset(split='test', size=224, train=False)  # Adjust parameters as needed
-indices = random.sample(range(len(dataset)), 1000)
-subset = torch.utils.data.Subset(dataset, indices)
-dataloader = torch.utils.data.DataLoader(subset, batch_size=1000)
 
-# Extract features
-# Assume model is a pretrained CNN (like ResNet-18) with modified output features for PASCAL VOC
+class VOCDataset(Dataset):
+    CLASS_NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
+                   'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+	
+    INV_CLASS = {}
+    for i in range(len(CLASS_NAMES)):
+        INV_CLASS[CLASS_NAMES[i]] = i
 
-if torch.cuda.is_available():
-  device = 'cuda'
-else:
-  device = 'cpu'
+    def __init__(self, split, size, train=True, use_augmentations=True, data_dir='data/VOCdevkit/VOC2007/'):
+        super().__init__()
+        self.split = split
+        self.data_dir = data_dir
+        self.size = size
+        self.train = train
+        self.img_dir = os.path.join(data_dir, 'JPEGImages')
+        self.ann_dir = os.path.join(data_dir, 'Annotations')
+        self.use_augmentations = use_augmentations
 
-model = ResNet(20)
-saved_model = torch.load('Q2Model_checkpoint.pth', map_location=device)  # Load your model here
-model.load_state_dict(saved_model['model_states'])
-model.eval()
+        split_file = os.path.join(data_dir, 'ImageSets/Main', split + '.txt')
+        with open(split_file) as fp:
+            self.index_list = [line.strip() for line in fp]
 
-# Here, we'll assume the feature extractor is the model without its final classification layer
-# Depending on your model architecture, you might extract features from a different layer
-feature_extractor = torch.nn.Sequential(*(list(model.children())[:-1]))
+        self.anno_list = self.preload_anno()
 
-features, labels = None, None
-for inputs, targets, _ in dataloader:
-    with torch.no_grad():
-        outputs = feature_extractor(inputs)
-        outputs = outputs.view(outputs.size(0), -1)  # Flatten the features
-    features = outputs.cpu().numpy() if features is None else np.vstack((features, outputs.cpu().numpy()))
-    labels = targets.cpu().numpy() if labels is None else np.vstack((labels, targets.cpu().numpy()))
+    @classmethod
+    def get_class_name(cls, index):
+        return cls.CLASS_NAMES[index]
 
-# Compute t-SNE
-tsne = TSNE(n_components=2, random_state=0)
-features_2d = tsne.fit_transform(features)
+    @classmethod
+    def get_class_index(cls, name):
+        return cls.INV_CLASS[name]
 
-# Create a color for each class
-colors = plt.cm.rainbow(np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
+    def __len__(self):
+        return len(self.index_list)    
 
-# Compute the mean color for each sample
-mean_colors = np.dot(labels, colors)
 
-# Normalize to [0, 1]
-mean_colors = mean_colors - np.min(mean_colors, axis=0)  # Min-Max Normalization
-mean_colors = mean_colors / np.max(mean_colors, axis=0) 
+    def preload_anno(self):
+        """
+        :return: a list of labels. each element is in the form of [class, weight],
+         where both class and weight are a numpy array in shape of [20].
+        """
+        label_list = []
+        class_map = {}
+		
+		
+        for index in self.index_list:
+            fpath = os.path.join(self.ann_dir, index + '.xml')
+            tree = ET.parse(fpath)
+			# match the objects from 'tree' to class labels pulled from the Annotations folder. 
+			
+            #######################################################################
+            # TODO: Insert your code here to preload labels
+            # Hint: the folder Annotations contains .xml files with class labels
+            # for objects in the image. The `tree` variable contains the .xml
+            # information in an easy-to-access format (it might be useful to read
+            # https://docs.python.org/3/library/xml.etree.elementtree.html)
+            # Loop through the `tree` to find all objects in the image
+            #######################################################################
+			
+			##
+			
+			##
+			
+            #  The class vector should be a 20-dimensional vector with class[i] = 1 if an object of class i is present in the image and 0 otherwise
+            class_vec = torch.zeros(20)
+            # The weight vector should be a 20-dimensional vector with weight[i] = 0 if an object of class i has the `difficult` attribute set to 1 in the XML file and 1 otherwise
+            # The difficult attribute specifies whether a class is ambiguous and by setting its weight to zero it does not contribute to the loss during training 
+            weight_vec = torch.ones(20)
+			
+            for obj in tree.findall('object'):
+                class_name = obj.find('name').text
+                difficult = int(obj.find('difficult').text)
+				#so that weights are not given to the difficult-to-detect objects
+				
+				# Map class name to an index
+                class_index = self.get_class_index(class_name)
+				#clarify this
+				
+				# Setting the relevant element in class_vec to 1. Is already zero for classes not present
+                class_vec[class_index] = 1
+				
+				# Setting the relevant element in class_vec to 0 if 'difficult' is 1
+        #what does difficult mean??
+                if difficult == 1:
+                    weight_vec[class_index] = 0
+				
 
-# Plot
-fig, ax = plt.subplots(figsize=(10, 10))  # Explicitly create a Figure and Axes
-scatter = ax.scatter(features_2d[:, 0], features_2d[:, 1], c=mean_colors, s=10)
-ax.set_title("t-SNE Visualization of Image Features")
+            ######################################################################
+            #                            END OF YOUR CODE                        #
+            ######################################################################
 
-# Add a colorbar as legend
-sm = plt.cm.ScalarMappable(cmap=plt.cm.rainbow, norm=plt.Normalize(vmin=0, vmax=len(VOCDataset.CLASS_NAMES)-1))
-# sm.set_array(VOCDataset.CLASS_NAMES)
-sm.set_array([])
-cbar = plt.colorbar(sm, ax=ax, boundaries=np.arange(len(VOCDataset.CLASS_NAMES)+1)-0.5)
-cbar.set_ticks(np.arange(len(VOCDataset.CLASS_NAMES)))
-cbar.set_ticklabels(VOCDataset.CLASS_NAMES)
-cbar.set_label('Classes', rotation=270)
+            label_list.append((class_vec, weight_vec))
 
-# plt.show() 
-plt.savefig('TSNE2.png')
+        return label_list
+
+    def get_random_augmentations(self):
+        ######################################################################
+        # TODO: Return a list of random data augmentation transforms here
+        # NOTE: make sure to not augment during test and replace random crops
+        # with center crops. Hint: There are lots of possible data
+        # augmentations. Some commonly used ones are random crops, flipping,
+        # and rotation. You are encouraged to read the docs, which is found
+        # at https://pytorch.org/vision/stable/transforms.html
+        # Depending on the augmentation you use, your final image size will
+        # change and you will have to write the correct value of `flat_dim`
+        # in line 46 in simple_cnn.py
+        ######################################################################
+		
+        if self.use_augmentations and self.train:
+            transforms_list = [
+            transforms.RandomHorizontalFlip(p=0.5),
+            # transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(degrees=(-15, 15)),
+            transforms.RandomResizedCrop(self.size),  # Target size 64x64
+            # transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1))
+                    ]
+            # random_transforms = random.sample(transforms_list, k=random.randint(1, len(transforms_list)))
+            return transforms_list
+			
+        else:
+            return [transforms.Resize(64), transforms.CenterCrop(64)]
+		
+		# pass
+		
+        ######################################################################
+        #                            END OF YOUR CODE                        #
+        ######################################################################
+
+    def __getitem__(self, index):
+        """
+        :param index: a int generated by Dataloader in range [0, __len__()]
+        :return: index-th element
+        image: FloatTensor in shape of (C, H, W) in scale [-1, 1].
+        label: LongTensor in shape of (Nc, ) binary label
+        weight: FloatTensor in shape of (Nc, ) difficult or not.
+        """
+        findex = self.index_list[index]
+        fpath = os.path.join(self.img_dir, findex + '.jpg')
+
+        img = Image.open(fpath)
+
+        trans = transforms.Compose([
+            *self.get_random_augmentations(),
+            transforms.Resize((self.size, self.size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.457, 0.407], std=[0.5, 0.5, 0.5])
+        ])
+
+        img = trans(img)
+        lab_vec, wgt_vec = self.anno_list[index] 
+        image = torch.FloatTensor(img)
+        label = torch.FloatTensor(lab_vec)
+        wgt = torch.FloatTensor(wgt_vec)
+
+        return image, label, wgt

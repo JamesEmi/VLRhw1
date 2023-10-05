@@ -21,12 +21,12 @@ class VOCDataset(Dataset):
     for i in range(len(CLASS_NAMES)):
         INV_CLASS[CLASS_NAMES[i]] = i
 
-    def __init__(self, split, size, train=True, use_augmentations=True, data_dir='data/VOCdevkit/VOC2007/'):
+    def __init__(self, split, size, data_dir='data/VOCdevkit/VOC2007/'):
         super().__init__()
         self.split = split
         self.data_dir = data_dir
         self.size = size
-        self.train = train
+        # self.train = train
         self.img_dir = os.path.join(data_dir, 'JPEGImages')
         self.ann_dir = os.path.join(data_dir, 'Annotations')
         self.use_augmentations = use_augmentations
@@ -121,22 +121,18 @@ class VOCDataset(Dataset):
         # in line 46 in simple_cnn.py
         ######################################################################
 		
-        if self.use_augmentations and self.train:
+
+        if self.split=='train':
             transforms_list = [
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomRotation(degrees=15),
-            transforms.RandomResizedCrop(size=64),  # Target size 64x64
-            # transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1))
-                    ]
-			
-            random_transforms = random.sample(transforms_list, k=random.randint(1, len(transforms_list)))
-            return random_transforms
-			
+            transforms.RandomRotation(degrees=(-10, 10)),
+            transforms.RandomResizedCrop(self.size)
+            ] # Target size 64x64
+            return transforms_list
+
         else:
-            return [transforms.Resize(64), transforms.CenterCrop(64)]
-		
-		# pass
+            return [transforms.CenterCrop(self.size)]
+			
 		
         ######################################################################
         #                            END OF YOUR CODE                        #

@@ -111,14 +111,12 @@ class VOCDataset(Dataset):
         # change and you will have to write the correct value of `flat_dim`
         # in line 46 in simple_cnn.py
         ######################################################################
-        if self.split=='train':
-          transforms_list = [
-          transforms.RandomHorizontalFlip(p=0.5),
+        if self.split=='trainval':
+          return [transforms.RandomHorizontalFlip(p=0.5),
+          transforms.RandomVerticalFlip(p=0.5),
           transforms.RandomRotation(degrees=(-11, 11)),
-          transforms.RandomResizedCrop(self.size)
-          ] # Target size 64x64
-          return transforms_list
-
+          transforms.RandomResizedCrop(self.size)] # Target size 64x64
+          # return [transforms.CenterCrop(self.size)]
         else:
           return [transforms.CenterCrop(self.size)]
         ######################################################################
@@ -144,6 +142,7 @@ class VOCDataset(Dataset):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.457, 0.407], std=[0.5, 0.5, 0.5]),
         ])
+        print(trans)
 
         img = trans(img)
         lab_vec, wgt_vec = self.anno_list[index] 

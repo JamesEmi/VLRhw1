@@ -37,10 +37,10 @@ if __name__ == "__main__":
         inp_size = 64,
         use_cuda = True,
         val_every = 70,
-        lr = 0.001,    #param set #1 - bad results?
+        lr = 0.002,    #param set #1 - bad results?
         batch_size = 64, #or 64
-        step_size = 1,
-        gamma = 0.9,
+        step_size = 5,
+        gamma = 0.1,
         # use_augmentations=False
     )
 

@@ -48,8 +48,6 @@ class ARGS(object):
     use_cuda = False
     # input size
     inp_size = 224
-    #for data augmentations
-    use_augmentations = True
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -69,10 +67,10 @@ class ARGS(object):
         return torch.device("cuda" if self.use_cuda else "cpu")
 
 
-def get_data_loader(name='voc', train=True, batch_size=64, split='train', inp_size=224, use_augmentations=True):
+def get_data_loader(name='voc', train=True, batch_size=64, split='train', inp_size=224):
     if name == 'voc':
         from voc_dataset import VOCDataset
-        dataset = VOCDataset(split, inp_size, use_augmentations=use_augmentations)
+        dataset = VOCDataset(split, inp_size)
     else:
         raise NotImplementedError
 

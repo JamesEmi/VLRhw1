@@ -45,7 +45,6 @@ if __name__ == "__main__":
     )
 
     print(args)
-    print(f"Using Data Augmentations: {args.use_augmentations}")
 
     # initializes the model
     model = SimpleCNN(num_classes=len(VOCDataset.CLASS_NAMES), inp_size=64, c_dim=3)

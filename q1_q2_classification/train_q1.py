@@ -33,14 +33,14 @@ if __name__ == "__main__":
     ##################################################################
 
     args = ARGS(
-        epochs = 5,
+        epochs = 8,
         inp_size = 64,
         use_cuda = True,
         val_every = 70,
         lr = 0.0015,
-        batch_size = 64, #or 32
+        batch_size = 32, #or 32
         step_size = 1,
-        gamma = 0.85
+        gamma = 0.2
     )
 
     print(args)

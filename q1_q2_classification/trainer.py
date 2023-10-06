@@ -23,7 +23,9 @@ def save_model(epoch, model_name, model):
 
 
 def train(args, model, optimizer, scheduler=None, model_name='model'):
-    writer = SummaryWriter(log_dir=f"runs/baselineparams_aug")
+    # writer = SummaryWriter()
+    # writer = SummaryWriter(log_dir=f"runs/baseline_params_no_aug")
+    writer = SummaryWriter(log_dir=f"runs/q3_optim_params_aug_freeze")
     train_loader = utils.get_data_loader(
         'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size)
     test_loader = utils.get_data_loader(

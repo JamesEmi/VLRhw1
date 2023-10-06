@@ -190,7 +190,7 @@ def train_detector(
     """
     Train the detector. We use SGD with momentum and step decay.
     """
-    writer = SummaryWriter("detection_logs")
+    writer = SummaryWriter("detection_logs/full_inference_2")
     detector.to(device=device)
 
     # Optimizer: use SGD with momentum.

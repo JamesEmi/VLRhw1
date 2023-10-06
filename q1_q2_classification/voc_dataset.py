@@ -142,7 +142,7 @@ class VOCDataset(Dataset):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.457, 0.407], std=[0.5, 0.5, 0.5]),
         ])
-        print(trans)
+        # print(trans)
 
         img = trans(img)
         lab_vec, wgt_vec = self.anno_list[index] 

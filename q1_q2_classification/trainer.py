@@ -6,6 +6,7 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import utils
 from voc_dataset import VOCDataset
+from torch.nn import BCELoss
 
 
 def save_this_epoch(args, epoch):
@@ -24,7 +25,7 @@ def save_model(epoch, model_name, model):
 
 
 def train(args, model, optimizer, scheduler=None, model_name='model'):
-    writer = SummaryWriter(log_dir=f"runs/q1_bestparam1_noaug") #Remember to change the name here for each run (to store aug and not aug runs separately)
+    writer = SummaryWriter(log_dir=f"runs/q1_bestparam_final_aug") #Remember to change the name here for each run (to store aug and not aug runs separately)
     train_loader = utils.get_data_loader(
         'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size) #Or False
     test_loader = utils.get_data_loader(
@@ -56,18 +57,23 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             ##################################################################
 			
 			      # using sigmoid activation to get probabilities in range [0,1]
-            probs = 1 / (1+ torch.exp(-output))
+            # probs = 1 / (1+ torch.exp(-output))
 			
-			      #expression for binary cross entropy loss
-            bce_loss = (-target * torch.log(probs + 1e-9)) - ((1 - target) * torch.log(1 - probs + 1e-9))
+			      # #expression for binary cross entropy loss
+            # bce_loss = (-target * torch.log(probs + 1e-10)) - ((1 - target) * torch.log(1 - probs + 1e-10))
+
 
 			      
-			      # Weighted loss
-            weighted_loss = bce_loss * wgt
-			
-			      # Average over all instances and classes
-            loss = torch.mean(weighted_loss.sum(dim=1))
-            # loss = 0
+			      # # Weighted loss
+            # weighted_loss = bce_loss * wgt
+            
+			      # # Average over all instances and classes
+            # loss = torch.mean(weighted_loss.sum(dim=1))
+            
+            
+            bce = BCELoss()
+            loss = bce(output, target)
+
             ##################################################################
             #                          END OF YOUR CODE                      #
             ##################################################################

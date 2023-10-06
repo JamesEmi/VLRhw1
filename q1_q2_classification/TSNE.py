@@ -45,7 +45,7 @@ tsne = TSNE(n_components=2, random_state=0)
 features_2d = tsne.fit_transform(features)
 
 # Create a color for each class
-colors = plt.cm.rainbow(np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
+colors = plt.cm.tab20(np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
 
 # Compute the mean color for each sample
 mean_colors = np.dot(labels, colors)
@@ -58,20 +58,20 @@ plt.figure(figsize=(10, 10))
 plt.scatter(
     features_2d[:, 0], features_2d[:, 1], 
     c=mean_colors, 
-    s=30,              # Increase point size
-    edgecolor='k',     # Add edge color
-    linewidth=0.5,     # Adjust edge width
-    marker='o',        # Adjust marker style
-    alpha=0.8          # Adjust opacity
+    s=50,              # Increase point size
+    # edgecolor='k',     # Add edge color
+    # linewidth=0.5,     # Adjust edge width
+    # marker='o',        # Adjust marker style
+    alpha=0.9         # Adjust opacity
 )
 plt.title("t-SNE Visualization of Image Features")
 
 
 # Add a colorbar as legend
-# Creating a colorbar with labels
-cbar = plt.colorbar()
-cbar.set_ticks(np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
-cbar.set_ticklabels(VOCDataset.CLASS_NAMES)
+sm = plt.cm.ScalarMappable(cmap=plt.cm.tab20)  # Using 'tab20' colormap for colorbar
+sm.set_array([])  # Only needed for matplotlib < 3.1
+cbar = plt.colorbar(sm, ticks=np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
+cbar.set_ticklabels(VOCDataset.CLASS_NAMES)  # Add class names to colorbar
 
 # plt.show() 
-plt.savefig('TSNE_trial.png')
+plt.savefig('TSNE_trial_tab20.png')

@@ -50,14 +50,22 @@ colors = plt.cm.rainbow(np.linspace(0, 1, len(VOCDataset.CLASS_NAMES)))
 # Compute the mean color for each sample
 mean_colors = np.dot(labels, colors)
 
-# Normalize to [0, 1]
+# Normalize to [0, 1]A
 mean_colors = mean_colors - np.min(mean_colors, axis=0)  # Min-Max Normalization
 mean_colors = mean_colors / np.max(mean_colors, axis=0) 
 
-# Plot
 plt.figure(figsize=(10, 10))
-plt.scatter(features_2d[:, 0], features_2d[:, 1], c=mean_colors, s=10)
+plt.scatter(
+    features_2d[:, 0], features_2d[:, 1], 
+    c=mean_colors, 
+    s=30,              # Increase point size
+    edgecolor='k',     # Add edge color
+    linewidth=0.5,     # Adjust edge width
+    marker='o',        # Adjust marker style
+    alpha=0.8          # Adjust opacity
+)
 plt.title("t-SNE Visualization of Image Features")
+
 
 # Add a colorbar as legend
 # Creating a colorbar with labels

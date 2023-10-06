@@ -1,5 +1,4 @@
 from __future__ import print_function
-from tqdm import tqdm
 
 import torch
 import numpy as np
@@ -24,9 +23,9 @@ def save_model(epoch, model_name, model):
 
 
 def train(args, model, optimizer, scheduler=None, model_name='model'):
-    writer = SummaryWriter(log_dir=f"runs/q3_overfit") #Remember to change the name here for each run (to store aug and not aug runs separately)
+    writer = SummaryWriter(log_dir=f"runs/FINAL_bestparams1")
     train_loader = utils.get_data_loader(
-        'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size) #Or False
+        'voc', train=True, batch_size=args.batch_size, split='trainval', inp_size=args.inp_size)
     test_loader = utils.get_data_loader(
         'voc', train=False, batch_size=args.test_batch_size, split='test', inp_size=args.inp_size)
 
@@ -37,7 +36,7 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
     cnt = 0
 
     for epoch in range(args.epochs):
-        for batch_idx, (data, target, wgt) in enumerate(tqdm(train_loader, desc="Epoch {}".format(epoch))):
+        for batch_idx, (data, target, wgt) in enumerate(train_loader):
             data, target, wgt = data.to(args.device), target.to(args.device), wgt.to(args.device)
 
             optimizer.zero_grad()
@@ -54,8 +53,6 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             # Function Outputs:
             #   - `output`: Computed loss, a single floating point number
             ##################################################################
-			
-			      # using sigmoid activation to get probabilities in range [0,1]
             probs = 1 / (1+ torch.exp(-output))
 			
 			      #expression for binary cross entropy loss
@@ -68,8 +65,7 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             weighted_loss = wgt * bce_loss
             
 			      # Average over all instances and classes
-            loss = torch.mean(weighted_loss.sum(dim=1))
-
+            loss = torch.mean(weighted_loss)
             ##################################################################
             #                          END OF YOUR CODE                      #
             ##################################################################
@@ -84,11 +80,6 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
                 for tag, value in model.named_parameters():
                     if value.grad is not None:
                         writer.add_histogram(tag + "/grad", value.grad.cpu().numpy(), cnt)
-                # Log specific gradients
-                for name, param in model.named_parameters():
-                    if name == "layer1.1.conv1.weight" or name == "layer4.0.bn2.bias":
-                        writer.add_histogram(name + '/grad', param.grad, cnt)
-
 
             optimizer.step()
             

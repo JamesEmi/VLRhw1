@@ -40,7 +40,7 @@ class SimpleCNN(nn.Module):
         # TODO set the correct dim here
         self.flat_dim = (inp_size//4) * (inp_size//4) * 64
         # Used the conv formula to manually determine that size is reduced by factor of 4 with each conv-pool layer.
-		    # number of channels from last convolutional later is 64.
+		    # Number of channels from last convolutional later is 64.
 
         # Sequential is another way of chaining the layers.
         self.fc1 = nn.Sequential(*get_fc(self.flat_dim, 128, 'none'))
@@ -51,6 +51,7 @@ class SimpleCNN(nn.Module):
         :param x: input image in shape of (N, C, H, W)
         :return: out: classification logits in shape of (N, Nc)
         """
+
         N = x.size(0)
         x = self.conv1(x)
         x = self.nonlinear(x)

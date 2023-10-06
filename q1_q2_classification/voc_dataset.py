@@ -29,7 +29,6 @@ class VOCDataset(Dataset):
         # self.train = train
         self.img_dir = os.path.join(data_dir, 'JPEGImages')
         self.ann_dir = os.path.join(data_dir, 'Annotations')
-        self.use_augmentations = use_augmentations
 
         split_file = os.path.join(data_dir, 'ImageSets/Main', split + '.txt')
         with open(split_file) as fp:
@@ -98,6 +97,8 @@ class VOCDataset(Dataset):
         #what does difficult mean??
                 if difficult == 1:
                     weight_vec[class_index] = 0
+                else:
+                  weight_vec[class_index] = 1
 				
 
             ######################################################################
@@ -125,7 +126,7 @@ class VOCDataset(Dataset):
         if self.split=='train':
             transforms_list = [
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomRotation(degrees=(-10, 10)),
+            transforms.RandomRotation(degrees=(-14.2, 14.2)),
             transforms.RandomResizedCrop(self.size)
             ] # Target size 64x64
             return transforms_list

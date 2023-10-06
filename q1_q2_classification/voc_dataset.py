@@ -56,11 +56,10 @@ class VOCDataset(Dataset):
         label_list = []
         class_map = {}
 		
-		
         for index in self.index_list:
             fpath = os.path.join(self.ann_dir, index + '.xml')
             tree = ET.parse(fpath)
-			# match the objects from 'tree' to class labels pulled from the Annotations folder. 
+			      # match the objects from 'tree' to class labels pulled from the Annotations folder. 
 			
             #######################################################################
             # TODO: Insert your code here to preload labels
@@ -69,11 +68,7 @@ class VOCDataset(Dataset):
             # information in an easy-to-access format (it might be useful to read
             # https://docs.python.org/3/library/xml.etree.elementtree.html)
             # Loop through the `tree` to find all objects in the image
-            #######################################################################
-			
-			##
-			
-			##
+            ######################################################################
 			
             #  The class vector should be a 20-dimensional vector with class[i] = 1 if an object of class i is present in the image and 0 otherwise
             class_vec = torch.zeros(20)
@@ -125,10 +120,10 @@ class VOCDataset(Dataset):
 
         if self.split=='train':
             transforms_list = [
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomRotation(degrees=(-14.2, 14.2)),
-            transforms.RandomResizedCrop(self.size)
-            ] # Target size 64x64
+            transforms.RandomHorizontalFlip(p=0.5),]
+            # transforms.RandomRotation(degrees=(-14.2, 14.2)),
+            # transforms.RandomResizedCrop(self.size)
+            # ] # Target size 64x64
             return transforms_list
 
         else:

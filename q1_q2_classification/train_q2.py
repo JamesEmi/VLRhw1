@@ -13,21 +13,22 @@ class ResNet(nn.Module):
     def __init__(self, num_classes) -> None:
         super().__init__()
 
-        self.resnet = torchvision.models.resnet18(pretrained=True)
+        self.resnet = torchvision.models.resnet18(weights='IMAGENET1K_V1')
         ##################################################################
         # TODO: Define a FC layer here to process the features
         ##################################################################
-       
         self.resnet.fc = nn.Linear(512, num_classes)
+        ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
         
 
     def forward(self, x):
         ##################################################################
-        # TODO: Return unnormalized log-probabilities here
+        # TODO: Return raw outputs here
+        ##################################################################
         return self.resnet(x)
-	
+        ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
 
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     #     step_size=#TODO,
     #     gamma=#TODO
     # )
-    
+
     args = ARGS(
         epochs=50,
         inp_size=224,
@@ -65,7 +66,7 @@ if __name__ == "__main__":
         step_size=6,
         gamma=0.1
     )
-    
+
     ##################################################################
     #                          END OF YOUR CODE                      #
     ##################################################################
@@ -87,8 +88,7 @@ if __name__ == "__main__":
     # initializes Adam optimizer and simple StepLR scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
-    
-    # trains model using your training code and reports test mAP
+    # trains model using your training code and reports test map
     test_ap, test_map = trainer.train(args, model, optimizer, scheduler)
     print('test map:', test_map)
 

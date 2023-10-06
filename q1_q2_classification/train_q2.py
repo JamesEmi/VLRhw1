@@ -18,6 +18,10 @@ class ResNet(nn.Module):
         # TODO: Define a FC layer here to process the features
         ##################################################################
         self.resnet.fc = nn.Linear(512, num_classes)
+        for param in self.resnet.parameters():
+          param.requires_grad = True
+        self.resnet.fc.requires_grad = False #True (to unfreeze)
+        self.resnet.fc = nn.Linear(512, num_classes) #512 is the standard output size for resnet18.
         ##################################################################
         #                          END OF YOUR CODE                      #
         ##################################################################
